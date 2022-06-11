@@ -182,13 +182,38 @@ autoplot(plastics, series = "Data") + autolayer(trendcycle(multi.decomp), series
 Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
 
 ```{r}
-plastics
-plastics$Jan <- plastics$Jan + 900
+outlier.plastics <- plastics
+outlier.plastics[5] <- plastics[5] + 1000
+
+decomp.outlier.plast <- outlier.plastics %>% decompose(type = "multiplicative")
+
+autoplot(outlier.plastics, series = "Data") +
+  autolayer(trendcycle(decomp.outlier.plast), series = "Trend") +
+  autolayer(seasadj(decomp.outlier.plast), series = "Seasonally Adjusted")
 ```
 
 Does it make any difference if the outlier is near the end rather than in the middle of the time series?
 
-```{r}
+- No, not at all
 
+```{r}
+middle.plastics <- plastics
+middle.decomp <- middle.plastics %>%
+  decompose(type = "multiplicative")
+
+end.plastics <- plastics
+end.decomp <- end.plastics %>% decompose(type = "multiplicative")
+
+autoplot(plastics, series = "Data") +
+  autolayer(trendcycle(multi.decomp), series = "Trend") +
+  ggtitle("Plastics Seasonally Adjusted -original data")
+
+autoplot(middle.plastics, series = "Data") +
+  autolayer(trendcycle(middle.decomp), series = "Trend") +
+  ggtitle("Plastics SA- Middle Observation")
+
+autoplot(end.plastics, series = "Data") +
+  autolayer(trendcycle(end.decomp), series = "Trend") +
+  ggtitle("Plastics SA- End Observation")
 ```
 
