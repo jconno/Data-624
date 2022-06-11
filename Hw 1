@@ -1,0 +1,194 @@
+title: "Data 624 HW 1"
+author: "Joe Connolly"
+date: '2022-06-05'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Libraries
+
+```{r}
+library(forecast)
+library(xts)
+library(gridExtra)
+library(httr)
+library(readxl)
+library(fma)
+library(fpp)
+library(pls)
+library(dplyr)
+```
+
+
+```{r}
+setwd("C:/Users/jmcon/OneDrive/Documents/Data624")
+```
+
+
+#1 
+
+### 2.1
+
+Use the help function to explore what the series gold, woolyrnq and gas represent.
+
+a) Use autoplot() to plot each of these in separate plots.
+
+b) What is the frequency of each series? Hint: apply the frequency() function.
+
+c) Use which.max() to spot the outlier in the gold series. Which observation was it?
+
+#### Gold
+
+```{r}
+help(gold, package = forecast)
+```
+
+```{r}
+autoplot(gold) 
+```
+
+- Daily morning gold prices in US dollars. 1 January 1985 – 31 March 1989.
+
+```{r}
+findfrequency(gold)
+```
+
+```{r}
+print(paste0(which.max(gold), " is the outlier. This can be observed as the peak in the timeseries chart before 800 on the x-axis"))
+```
+
+
+
+#### Wool
+
+```{r}
+help(woolyrnq, package = forecast)
+```
+
+```{r}
+autoplot(woolyrnq)
+```
+
+- Quarterly production of woollen yarn in Australia: tonnes. Mar 1965 – Sep 1994
+
+```{r}
+findfrequency(woolyrnq)
+```
+
+#### Gas
+
+```{r}
+help(gas, package = forecast)
+```
+
+```{r}
+autoplot(gas)
+```
+
+Australian monthly gas production: 1956–1995.
+
+```{r}
+findfrequency(gas)
+```
+
+# 2
+
+### 2.3
+
+Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
+
+```{r}
+retaildata <- read_excel("retail.xlsx", skip = 1)
+```
+
+```{r}
+myts <- ts(retaildata[,"A3349872X"],
+  frequency=12, start=c(1982,4))
+```
+
+Explore your chosen retail time series using the following functions: autoplot(), ggseasonplot(), ggsubseriesplot(), gglagplot(), ggAcf()
+
+Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
+
+- The seasonal plot indicates a significant uptrend from October to December, with a sharp low in January. From February leading up to the end of Spring (May), retail generally peaks and goes into a lull throughout the Summer months until October. This repeats every year. The cyclical pattern from these charts allude to the uptrend in Sales for Christmas holidays, and throughout the years, there is an uptrend in retail spending (looking at the first plot)
+
+```{r, height = 12, width  =12}
+autoplot(myts)
+```
+
+```{r}
+ggsubseriesplot(myts)
+```
+
+
+```{r}
+ggseasonplot(myts)
+```
+
+```{r fig.height = 15, fig.width = 12}
+gglagplot(myts)
+```
+
+```{r}
+ggAcf(myts)
+```
+
+
+# 3
+
+### 6.2
+
+- The plastics data set consists of the monthly sales (in thousands) of product A for a plastics manufacturer for five years.
+
+```{r}
+help(plastics, package = fma)
+```
+
+Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
+
+```{r}
+autoplot(plastics)
+ggseasonplot(plastics)
+ggsubseriesplot(plastics)
+ggAcf(plastics)
+```
+
+```{r fig.height=10, fig.width=10}
+gglagplot(plastics)
+```
+
+
+Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
+
+```{r}
+multi.decomp <- plastics %>% decompose(type = "multiplicative")
+
+multi.decomp %>% autoplot()
+```
+
+Do the results support the graphical interpretation from part a?
+
+- Both Data and Seasonal sections of the decomposition show similar plots to the autoplot() chart. There's a seasonal trends are similar, and the Trend section supports the plots from part A and indicate a steady increase.
+
+Compute and plot the seasonally adjusted data.
+
+```{r}
+autoplot(plastics, series = "Data") + autolayer(trendcycle(multi.decomp), series = "Trend") + autolayer(seasadj(multi.decomp), series = "Seasonally Adjusted")
+```
+
+Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
+
+```{r}
+plastics
+plastics$Jan <- plastics$Jan + 900
+```
+
+Does it make any difference if the outlier is near the end rather than in the middle of the time series?
+
+```{r}
+
+```
+
