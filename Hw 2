@@ -1,0 +1,218 @@
+---
+title: "HW 2"
+author: "Joe Connolly"
+date: '2022-06-12'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("C:/Users/jmcon/OneDrive/Documents/Data624")
+```
+
+```{r}
+library(forecast)
+library(xts)
+library(gridExtra)
+library(httr)
+library(readxl)
+library(fma)
+library(fpp)
+library(pls)
+library(dplyr)
+library(patchwork)
+library(ggplot2)
+library(mlbench)
+```
+
+
+# Homework 2
+
+- KJ: 3.1, 3.2
+
+- HA: 7.1, 7.3
+
+## KJ Data Pre-processing
+
+### 3.1
+
+The UC Irvine Machine Learning Repository6 contains a data set related to glass identification. The data consist of 214 glass samples labeled as one of seven class categories. There are nine predictors, including the refractive index and percentages of eight elements: Na, Mg, Al, Si, K, Ca, Ba, and Fe.
+
+```{r}
+help(Glass, package = mlbench)
+data("Glass")
+str(Glass)
+summary(Glass)
+```
+
+(a) Using visualizations, explore the predictor variables to understand their distributions as well as the relationships between predictors.
+
+```{r}
+Ri.bp <- ggplot(Glass, aes(x = Type, y = RI)) + geom_boxplot() + theme_classic()
+Na.bp <- ggplot(Glass, aes(x = Type, y = Na)) + geom_boxplot() + theme_classic()
+Mg.bp <- ggplot(Glass, aes(x = Type, y = Mg)) + geom_boxplot() + theme_classic()
+Al.bp <- ggplot(Glass, aes(x = Type, y = Al)) + geom_boxplot() + theme_classic()
+Si.bp <- ggplot(Glass, aes(x = Type, y = Si)) + geom_boxplot() + theme_classic()
+K.bp  <- ggplot(Glass, aes(x = Type, y = K)) + geom_boxplot() + theme_classic()
+Ca.bp <- ggplot(Glass, aes(x = Type, y = Ca)) + geom_boxplot() + theme_classic()
+Ba.bp <- ggplot(Glass, aes(x = Type, y = Ba)) + geom_boxplot() + theme_classic()
+Fe.bp <- ggplot(Glass, aes(x = Type, y = Fe)) + geom_boxplot() + theme_classic()
+```
+
+```{r fig.width=10}
+# BoxPlots
+Ri.bp + Na.bp + Mg.bp + Al.bp + Si.bp + K.bp + Ca.bp + Ba.bp + Fe.bp + plot_layout(ncol = 3)
+```
+
+```{r}
+RI_d <- ggplot(Glass, aes(RI, color=Type)) + geom_density() + theme_classic()
+Na_d <- ggplot(Glass, aes(Na, color=Type)) + geom_density() + theme_classic()
+Mg_d <- ggplot(Glass, aes(Mg, color=Type)) + geom_density() + theme_classic()
+Al_d <- ggplot(Glass, aes(Al, color=Type)) + geom_density() + theme_classic()
+Si_d <- ggplot(Glass, aes(Si, color=Type)) + geom_density() + theme_classic()
+K_d <- ggplot(Glass, aes(K, color=Type)) + geom_density() + theme_classic()
+Ca_d <- ggplot(Glass, aes(Ca, color=Type)) + geom_density() + theme_classic()
+Ba_d <- ggplot(Glass, aes(Ba, color=Type)) + geom_density() + theme_classic()
+Fe_d <- ggplot(Glass, aes(Fe, color=Type)) + geom_density() + theme_classic()
+
+```
+
+```{r fig.height = 8, fig.wigth = 10}
+# Density Plots
+RI_d + Na_d + Mg_d + Al_d + Si_d +K_d + Ca_d + Ba_d + Fe_d + plot_layout(ncol = 3)
+
+```
+
+```{r}
+# Correlation Plot
+
+corrplot::corrplot(cor(Glass[c("RI", "Na", "Mg", "Al", "Si", "K", "Ca", "Ba", "Fe")]), method = "number", type = "lower")
+```
+
+
+(b) Do there appear to be any outliers in the data? Are any predictors skewed?
+
+Outliers:
+
+- It does appear there are outliers in this dataset. In all predictor variables, there are outliers within some or most "Types" of glass
+
+- Looking at the density plots, it does appear that Mg, K, Ba, and Fe are especially more skewed than their counterparts. Mg follows a dramatic left skew, while Ba, K, and Fe follow a dramatic right skew. RI and Ca follow have similar distributions of right skews, and Na and Si seem to be the most normal, with Si following a more normal distribution. Al has distributions all over, but seems to follow a slight right skew.  
+
+(c) Are there any relevant transformations of one or more predictors that might improve the classification model?
+
+- Applying BoxCox transformation to the skewed variables could improve the classification model. This is because Box Cox transformation is an efficient way of an optimal transformation
+
+#### 3.2
+
+The soybean data can also be found at the UC Irvine Machine Learning Repository. Data were collected to predict disease in 683 soybeans. The 35 predictors are mostly categorical and include information on the environmental conditions (e.g., temperature, precipitation) and plant conditions (e.g., left spots, mold growth). The outcome labels consist of 19 distinct classes
+
+```{r}
+help(Soybean, package = mlbench)
+data("Soybean")
+str(Soybean)
+summary(Soybean)
+```
+
+1) Investigate the frequency distributions for the categorical predictors. Are any of the distributions degenerate in the ways discussed earlier in this chapter?
+
+```{r}
+col_names <- colnames(Soybean[-1])
+
+plot_list <- list()
+
+for (i in col_names){
+  plot <- ggplot(Soybean, aes_string(Soybean[,i])) +
+    geom_bar() + 
+    xlab(colnames(Soybean[i]))
+  
+  plot_list[[i]] <- plot
+}
+```
+
+```{r fig.height = 15, fig.width = 10}
+grid.arrange(grobs=plot_list, ncol=4)
+```
+
+2) Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
+
+- sever, seed.tmt, germ, leaf.halo, leaf.marg, leaf.size, leaf.shread, leaf.mid, stem.cankers, canker.lesion, ext.decay, int.discolor, fruit.pods, fruit.spots, and roots all seem to have data that's more likely to be missing (more than the smallest value). There appears to be a higher ratio of missing data among categorical variables. A pattern of missing data can be determined via the "mice" package
+
+3)  Develop a strategy for handling missing data, either by eliminating predictors or imputation.
+
+```{r}
+#imputation method
+
+library(mice)
+library(VIM)
+library(VIM)
+
+
+md.pattern(Soybean)
+```
+
+```{r fig.width=13}
+# Visualization of missing data
+
+aggr_plot <- aggr(Soybean, col=c("navyblue", "lightpink2"), numbers = T, softVars = T, labels=names(Soybean), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+```
+
+```{r}
+# Imputation via predictive mean method
+
+tempdata <- mice(Soybean, m = 5, meth = "pmm", maxit = 10, seed = 100)
+summary(tempdata)
+```
+
+```{r}
+tempdata
+```
+
+- imputations to be investigated
+
+###  HA: Exponential Smoothing
+
+#### 7.1
+
+- Consider the pigs series — the number of pigs slaughtered in Victoria each month.
+
+a) Use the ses() function in R to find the optimal values of α and ℓ0, and generate forecasts for the next four months.
+
+```{r}
+head(pigs)
+```
+
+```{r}
+pigs %>% autoplot()
+```
+
+```{r}
+fc <- ses(pigs, h = 4)
+```
+
+```{r}
+
+autoplot(fc)
+```
+
+```{r}
+summary(fc)
+```
+
+b) Compute a 95% prediction interval for the first forecast using ^y ± 1.96s, where s is the standard deviation of the residuals. Compare your interval with the interval produced by R.
+
+```{r}
+y_hat <- c(1.96, -1.96)
+s <- sd(residuals(fc))
+ses(pigs, h=4)$mean[1]+(y_hat*s)
+```
+
+#### 7.3 
+
+Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+```{r}
+
+```
