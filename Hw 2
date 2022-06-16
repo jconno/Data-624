@@ -209,10 +209,70 @@ s <- sd(residuals(fc))
 ses(pigs, h=4)$mean[1]+(y_hat*s)
 ```
 
+#### 7.2
+
+Write your own function to implement simple exponential smoothing. The function should take arguments y (the time series), alpha (the smoothing parameter α) and level (the initial level ℓ0). It should return the forecast of the next observation in the series. Does it give the same forecast as ses()?
+
+```{r}
+# pigs
+# Function(y, a, L0)
+
+myses <- function(y, alpha, level) {
+  
+  # set initial estimated y with level
+  y_hat <- level
+  
+  # traverse elements of series
+  for(i in 1:length(y)) {
+    
+    # calculate the next estimated y
+    y_hat <- alpha * y[i] + (1 - alpha) * y_hat
+    
+  }
+  
+  return(y_hat)
+  
+}
+```
+
+```{r}
+fc_myses <- myses(y = pigs, alpha = optimal_alpha, level = optimal_L0)
+fc_ses <- ses(y = pigs, h = 4)
+print(fc_myses)
+print(fc_ses$mean[1])
+
+```
+
 #### 7.3 
 
 Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
 
 ```{r}
+mysse <- function(pars = c(alpha, level), y){
+  alpha <- pars[1]
+  level <- pars[2]
+  
+  y_hat <- level
+  
+  err <- 0
+  
+  ss <- 0
+  
+  for(i in 1:length(y)){
+    
+    err <- y[i] - y_hat
+    
+    sse <- see + err^2
+    
+    y_hat <- alpha * y[i] + (1-alpha)*y_hat
+  }
+  return(sse)
+}
+```
 
+```{r}
+result_mysse <- optim(par=c(0.5, pigs[1]), y = pigs, fn = mysse)
+
+mysse_opt.alpha <- result_mysse$par[1]
+mysse_opt.L0 <- result_mysse$par[2]
 ```
