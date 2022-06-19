@@ -1,0 +1,250 @@
+---
+title: "Data 624: HW 3"
+author: "Joe Connolly"
+date: '2022-06-16'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("C:/Users/jmcon/OneDrive/Documents/Data624")
+```
+
+###### libraries
+
+```{r warning = FALSE, message=FALSE}
+library(forecast)
+library(xts)
+library(gridExtra)
+library(httr)
+library(readxl)
+library(fma)
+library(fpp)
+library(pls)
+library(dplyr)
+library(patchwork)
+library(ggplot2)
+library(mlbench)
+```
+
+# Homework 3
+
+HA Book: 8.1, 8.2,8.6, 8.8
+
+## 8.1
+
+Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
+
+a) Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+- The differences among each plot is the magnitude of the numbers each one contains. From left to right, they contain 36, 360, and 1000 numbers. Because of the scale, it's not necessarily clear that the plots contain white noise such as on the second and especially the third plot.
+
+b) Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+
+- The critical values are at different distances from a mean of zero because they indicate the direction of an observation, in which it goes up or down. The autocorrelations are different in each figure because each figure has a different magnitude of 36, 360, and 1000 observations.
+
+## 8.2
+
+A classic example of a non-stationary series is the daily closing IBM stock price series (data set ibmclose). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+
+- The closing price for IBM is non-stationary because the $r_1$ value is small and negative. It should be differenced by computing the differences between each consecutive observation. 
+
+```{r}
+# Ibm closing 
+
+head(ibmclose)
+
+
+# ACF
+
+acf(ibmclose)
+
+
+# PACF
+
+pacf(ibmclose)
+```
+
+
+## 8.6
+
+Use R to simulate and plot some data from simple ARIMA models. 
+
+a) Use the following R code to generate data from an AR(1) model with ϕ1=0.6 and σ2 =1. The process starts with y1=0.
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*y[i-1] + e[i]
+
+head(y)
+```
+
+
+b) Produce a time plot for the series. How does the plot change as you change ϕ1 ?
+
+```{r fig.width = 10}
+set.seed(999)
+
+ar1 <- function(phi1){
+  
+  y <- ts(numeric(100))   # generate 100 data points from an AR(1) model with input phi1.
+
+  e <- rnorm(100)  # error 'e's have variation sigma^2 as 1.
+  
+  for(i in 2:100){
+    y[i] <- phi1*y[i-1] + e[i]
+  }
+  return(y)
+}
+
+
+# produce plots changing phi1 value.
+autoplot(ar1(0.20), series = "0.2") +
+  geom_line(size = 1, colour = "red") +
+  autolayer(y, series = "0.6", size = 1) +
+  autolayer(ar1(0.95), size = 1, series = "0.95") +
+  ylab("AR(1) models") +
+  guides(colour = guide_legend(title = "Phi1")) + theme_classic()
+```
+
+c) Write your own code to generate data from an MA(1) model with θ1 =0.6 and σ2=1.
+
+```{r}
+ma1 <- function(theta1){
+  # generate 100 data points from an MA(1) model with input theta1.
+  y <- ts(numeric(100))
+  # error 'e's have variation sigma^2 as 1.
+  e <- rnorm(100)
+  for(i in 2:100){
+    y[i] <- theta1*e[i-1] + e[i]
+  }
+  return(y)
+}
+```
+
+d) Produce a time plot for the series. How does the plot change as you change θ1?
+
+```{r fig.width=10}
+set.seed(999)
+
+autoplot(ma1(0.2), series = "0.2") +
+  geom_line(size = 1, colour = "red") +
+  autolayer(y, series = "0.6", size = 1) +
+  autolayer(ar1(0.9), size = 1, series = "0.95") +
+  ylab("MA(1) models") +
+  guides(colour = guide_legend(title = "Theta1")) + theme_classic()
+```
+
+e) Generate data from an ARMA(1,1) model with ϕ1=0.6, θ1=0.6 and σ2=1.
+
+```{r}
+y_arima.1.0.1 <- ts(numeric(50))
+e <- rnorm(50)
+for(i in 2:50){
+   y_arima.1.0.1[i] <- 0.6*y_arima.1.0.1[i-1] + 0.6*e[i-1] + e[i]
+}
+```
+
+f) Generate data from an AR(2) model with ϕ1=−0.8, ϕ2=0.3 and σ2=1. (Note that these parameters will give a non-stationary series.)
+
+```{r}
+y_arima.2.0.0 <- ts(numeric(50))
+e <- rnorm(50)
+for(i in 3:50){
+   y_arima.2.0.0[i] <- -0.8*y_arima.2.0.0[i-1] + 0.3*y_arima.2.0.0[i-2] + e[i]
+}
+```
+
+g) Graph the latter two series and compare them.
+
+```{r fig.width =10, fig.height = 4}
+autoplot(y_arima.1.0.1, series = "ARMA(1, 1)") +
+  autolayer(y_arima.2.0.0, series = "AR(2)") +
+  ylab("y") +
+  guides(colour = guide_legend(title = "Models")) + theme_classic() + 
+autoplot(y_arima.1.0.1) + theme_classic()
+```
+https://github.com/JehyeonHeo/Forecasting_with_R_practices/blob/master/Chapter8.rmd
+
+## 8.8
+
+Consider austa, the total international visitors to Australia (in millions) for the period 1980-2015.
+
+```{r}
+austa
+```
+
+a) Use auto.arima() to find an appropriate ARIMA model. What model was selected. Check that the residuals look like white noise. Plot forecasts for the next 10 periods.
+
+```{r}
+autoplot(austa)
+```
+
+```{r}
+austa.autoArima <- forecast(auto.arima(austa), h = 10)
+
+austa.autoArima$model
+
+checkresiduals(austa.autoArima)
+
+autoplot(austa.autoArima)
+```
+
+- ARIMA(0,1,0) with drift was chosen, and according to the plot of the residuals, they appear to be white noise.
+
+b) Plot forecasts from an ARIMA(0,1,1) model with no drift and compare these to part a. Remove the MA term and plot again.
+
+```{r}
+# Forecasts from ARIMA(0,1,1)
+
+austa.arima011 <- forecast(Arima(austa, order = c(0,1,1)), h = 10)
+autoplot(austa.arima011)
+
+austa.arima101 <- forecast(Arima(austa, order = c(1,0,1)), h = 10)
+autoplot(austa.arima101)
+
+(austa.arima011$upper - austa.arima101$upper)
+(austa.arima011$upper - austa.arima101$lower)
+```
+
+c) Plot forecasts from an ARIMA(2,1,3) model with drift. Remove the constant and see what happens.
+
+```{r}
+austa.arima213.drift <- forecast(Arima(austa, order = c(2,1,3), include.drift = T), h = 10)
+
+autoplot(austa.arima213.drift)
+```
+
+```{r}
+drift.austa213 <- austa.arima213.drift$model$coef[6]
+austa.arima213.driftNA <- austa.arima213.drift$mean - drift.austa213*seq_len(10)
+
+autoplot(austa.arima213.drift) + autolayer(austa.arima213.driftNA)
+```
+
+d) Plot forecasts from an ARIMA(0,0,1) model with a constant. Remove the MA term and plot again.
+
+```{r}
+austa.arima001C <- forecast(Arima(austa, order = c(0,0,1), include.constant = T), h = 10)
+
+autoplot(austa.arima001C)
+```
+
+```{r}
+austa.arima000C <- forecast(Arima(austa, order = c(0,0,0), include.constant = T), h = 10)
+
+autoplot(austa.arima000C)
+```
+
+e) Plot forecasts from an ARIMA(0,2,1) model with no constant.
+
+```{r}
+austa.arima021 <- forecast(Arima(austa, order = c(0,2,1)), h = 10)
+
+autoplot(austa.arima021)
+```
