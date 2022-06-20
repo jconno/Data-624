@@ -42,14 +42,22 @@ head(data)
 
 ```{r}
 # Datetime Investigation
+# Testing datetime conversion
 # data1 <- data
-# dataa1 <- data1
-# 
-# dataa1$Var02 <- anytime::anydate(dataa1$Var02)
-# data1$Var02
-# message: Warning: All formats failed to parse. No formats found.
+# data1$Var02 <- as.integer(data1$Var02)
+# data1$Var02 <- as.POSIXct(data1$Var02, origin = "1970-01-01")
+# data1
+# Datetime Conversion Successful--applying to main DS
 
+# Converting Var02 to Datetime
+data$Var02 <- as.integer(data$Var02)
+data$Var02 <- as.POSIXct(data$Var02, origin = "1970-01-01")
+```
 
+```{r}
+# Renaming Var02 to Date to clarify purpose
+
+data <- data %>% rename("Datetime" = Var02)
 ```
 
 ```{r}
