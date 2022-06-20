@@ -1,0 +1,181 @@
+---
+title: "Project 1"
+author: "Joe Connolly"
+date: '2022-06-19'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("C:/Users/jmcon/OneDrive/Documents/Data624")
+```
+
+###### libraries
+
+```{r warning = FALSE, message=FALSE}
+library(forecast)
+library(xts)
+library(gridExtra)
+library(httr)
+library(readxl)
+library(fma)
+library(fpp)
+library(pls)
+library(dplyr)
+library(patchwork)
+library(ggplot2)
+library(mlbench)
+```
+
+# Data Importation, Organization
+
+```{r}
+data <- read_excel("DATA624_Project1_Data_Schema.xlsx")
+```
+
+```{r}
+head(data)
+```
+
+```{r}
+# Datetime Investigation
+# data1 <- data
+# dataa1 <- data1
+# 
+# dataa1$Var02 <- anytime::anydate(dataa1$Var02)
+# data1$Var02
+# message: Warning: All formats failed to parse. No formats found.
+
+
+```
+
+```{r}
+data$group <- as.factor(data$group)
+```
+
+
+```{r}
+summary(data)
+dim(data)
+str(data)
+```
+
+- All groups are equal in length
+
+- Columns 5-7 (Var03, Var04, Var07) all have same amount of missing values. Very close quartile and min/max values, comparable to column 3 (Var01). Column 4 (Var02) has numbers significantly larger that don't appear to be datetime values as investigated via "lubridate::ymd()"
+
+# Handling Missing Data
+
+- The dilemma is to decide whether or not it is appropriate to perform an analysis via imputing missing values, or to simply delete them. According to the plot below, generated via "VIM::aggr()", 91.81% of the data is fulfilled. Var01, Var02, Var03, Var05, and Var07 are missing about 8% of data. 
+
+```{r}
+# Plots of missing values
+
+aggr_plot <- VIM::aggr(data, col = c("navyblue", "orange"), 
+                  numbers = T, sortVars = T,
+                  labels = names(data),
+                  cex.axis = 0.7, gap = 3,
+                  ylab = c("Frequency of Missing Data", "Pattern"))
+```
+
+## MCAR or MAR?
+
+Creating a shadow matrix to see missing values. 1 indicates all values are present, and anything else indicates the ratio/percentage of missing values correlated among each other [$^2$](https://stats.stackexchange.com/questions/172316/a-statistical-approach-to-determine-if-data-are-missing-at-random)
+
+Aside from considering values correlated with themselves, which show to be complete, the following have no missing values when correlated with other variables:
+
+  - Var03 has no missing values when correlated with Var05 and Var07
+  
+  - Var05 has no missing values when correlated with Var03 and Var07
+  
+  - Var07 has no missing values when correlated with Var03 and Var05
+  
+Taking these points into consideration, it seems there appears to be bias in the data in the context of missing data. Therefore, it seems more appropriate to perform data imputation on missing values
+
+```{r}
+# Correlation of missing values from the dataset
+
+x <- as.data.frame(abs(is.na(data))) 
+
+y <- x[which(sapply(x, sd) >0)] # Extracts which variables are missing/NA from the dataset
+
+cor(y) # Tendency of NA when correlated among variables
+
+#cor(data[,-2], y, use = "pairwise.complete.obs") # Relationship among the presence in each variable and observed values 
+```
+
+
+
+### Removing NA values
+
+"...if the assumption of MCAR is satisfied, a listwise deletion is known to produce unbiased estimates and conservative results. When the data do not fulfill the assumption of MCAR, listwise deletion may cause bias in the estimates of the parameters. If there is a large enough sample, where power is not an issue, and the assumption of MCAR is satisfied, the listwise deletion may be a reasonable strategy. However, when there is not a large sample, or the assumption of MCAR is not satisfied, the listwise deletion is not the optimal strategy" [$^1$](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3668100/)
+
+
+
+# Data Imputation
+
+
+
+
+
+
+```{r}
+# Imputation Method 1: caret::preProcess()
+
+miss.data <- data[,3:7]
+
+meth1 = caret::preProcess(miss.data, method = "knnImpute")
+meth1Result <- predict(miss.data, meth1)
+```
+
+```{r}
+data
+```
+
+
+```{r}
+# Imputation Method 2: MICE package
+
+tempData <- mice::mice(miss.data, m = 5, method = "sample", maxit = 10, seed = 999)
+summary(tempData)
+tempData$method
+```
+
+```{r}
+# Random Forest Imputation via missForest
+
+data.impute <- missForest::missForest(data)
+```
+#### Dropping Missing Values
+
+```{r}
+# removing NA values from data
+
+data.nNA <- na.omit(data)
+summary(data.nNA)
+dim(data.nNA)
+
+dim.diff <- abs(dim(data) - dim(data.nNA))
+dim.diff[1]
+
+percentt.miss <- paste0(round(100*(dim.diff[1]/dim(data)[1]), 3),"% Data Missing")
+percentt.miss
+```
+
+## Final Forecasting Sets
+
+```{r}
+s01 <- data %>% filter(group == "S01")
+s02 <- data %>% filter(group == "S02")
+s03 <- data %>% filter(group == "S03")
+s04 <- data %>% filter(group == "S04")
+s05 <- data %>% filter(group == "S05")
+s06 <- data %>% filter(group == "S06")
+```
+
+
+
+
